@@ -13,13 +13,17 @@ class Budget {
         this.expenses = [];
     }
 
+    get totalExpenses () {
+        return this.expenses.reduce( ( total, expense) => total + expense.quantity, 0 );
+    }
+
     newExpense( expense ) {
         this.expenses = [...this.expenses, expense];
         this.calculateRemaining();
     }
 
     calculateRemaining() {
-        const totalExpenses = this.expenses.reduce( ( total, expense) => total + expense.quantity, 0 );
+        const totalExpenses = this.totalExpenses;
 
         this.remaining = this.budget - totalExpenses;
         
@@ -42,6 +46,7 @@ class UI {
         const messageDiv = document.createElement('div');
         messageDiv.textContent = message;
         messageDiv.classList.add('text-center', 'alert');
+        messageDiv.setAttribute('id', 'message');
 
         if( type === 'error' ) {
             messageDiv.classList.add('alert-danger');
@@ -68,6 +73,9 @@ class UI {
             const deleteBtn = document.createElement('button');
             deleteBtn.classList.add('btn', 'btn-danger', 'delete-expense');
             deleteBtn.textContent = 'Remove';
+            deleteBtn.onclick = () => {
+                deleteExpense( id );
+            }
 
             expenseLi.appendChild( deleteBtn );
             expensesList.appendChild( expenseLi );
@@ -76,6 +84,40 @@ class UI {
 
     clearExpensesList() {
         expensesList.textContent = '';
+    }
+
+    checkRemaining( budget ) {
+        const { remaining } = budget;
+        const initBudget = budget.budget;
+        
+        const remainingDiv = document.querySelector('.remaining');
+
+        if( initBudget / 2 >= remaining ) {
+            remainingDiv.classList.remove('alert-success');
+            // 75%
+            if( initBudget / 4 >= remaining ) {
+                remainingDiv.classList.remove('alert-warning');
+                remainingDiv.classList.add('alert-danger');
+                return;
+            }
+
+            remainingDiv.classList.add('alert-warning');
+        } else {
+            if( remainingDiv.classList.contains('alert-warning') ){
+                remainingDiv.classList.remove('alert-warning');
+            } else if ( remainingDiv.classList.contains('alert-danger') ) {
+                remainingDiv.classList.remove('alert-danger');
+            } 
+
+            const messageDivSet = document.querySelector('#message');
+
+            if( messageDivSet ) {
+                messageDivSet.remove();
+                form.querySelector('button').disabled = false;
+            } 
+
+            remainingDiv.classList.add('alert-success');
+        }
     }
 }
 
@@ -135,20 +177,44 @@ function addExpense( e ) {
     }
 
     budget.newExpense( expense );
-    
-    // Print success message
-    userInterface.showMessage('Expense added');
-    
+
     const { expenses, remaining } = budget;
 
-    // Print expenses
-    userInterface.printExpenses( expenses ); 
-    
-    // Update remaining
-    userInterface.updateRemaining( remaining );
+    if( budget.totalExpenses <= budget.budget ) {
+        // Print success message
+        userInterface.showMessage('Expense added');
+        setTimeout(() => {
+            document.querySelector('.alert-success').remove();
+        }, 3000);
+        // Update remaining
+        userInterface.updateRemaining( remaining );
+        // Print expenses
+        userInterface.printExpenses( expenses ); 
+        // Update the remainig color 
+        userInterface.checkRemaining( budget );
+        if( budget.totalExpenses === budget.budget ) {
+            userInterface.showMessage('All set.', 'error');
+            form.querySelector('button').disabled = true;
+        } 
+    } else {
+        userInterface.showMessage('You would exceed the budget..', 'error');
+        setTimeout(() => {
+            document.querySelector('.alert-danger').remove();
+        }, 3000);
+    }
 
     // Form restart
     form.reset();
+}
+
+// Delete expense, update remaining and html
+function deleteExpense( idExpense ) {
+    budget.expenses = budget.expenses.filter( exp => exp.id != idExpense);
+    
+    userInterface.updateRemaining( budget.calculateRemaining() );
+
+    userInterface.printExpenses( budget.expenses );
+    userInterface.checkRemaining( budget ); 
 }
 
 

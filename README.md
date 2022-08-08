@@ -5,4 +5,8 @@ Project to display the weekly expenses using DOM, events and JS classes.
 
 1. Ask the initial budget, validate and add it.
 
-2. Validate the expenses inputs and add it to the expense list.
+2. Validate the expenses inputs and add it to the expenses array.
+
+3. Create, validate and add a expense to the expenses list updating the remaining quantity.
+
+4. 

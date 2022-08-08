@@ -12,6 +12,19 @@ class Budget {
         this.remaining = budget;
         this.expenses = [];
     }
+
+    newExpense( expense ) {
+        this.expenses = [...this.expenses, expense];
+        this.calculateRemaining();
+    }
+
+    calculateRemaining() {
+        const totalExpenses = this.expenses.reduce( ( total, expense) => total + expense.quantity, 0 );
+
+        this.remaining = this.budget - totalExpenses;
+        
+        return this.remaining;
+    }
 }
 
 class UI {
@@ -20,8 +33,12 @@ class UI {
         document.querySelector('span#budget').textContent = budget;
         document.querySelector('span#remaining').textContent = remaining;
     }
+
+    updateRemaining( remaining ) {
+        document.querySelector('span#remaining').textContent = remaining;
+    }
     
-    showMessage( message, type = 'error' ) {
+    showMessage( message, type = 'success' ) {
         const messageDiv = document.createElement('div');
         messageDiv.textContent = message;
         messageDiv.classList.add('text-center', 'alert');
@@ -33,6 +50,32 @@ class UI {
         }
 
         document.querySelector('.primary').insertBefore( messageDiv, form );
+    }
+
+    printExpenses( expensesArr ) {
+        this.clearExpensesList();
+
+        expensesArr.forEach( exp  => {
+            
+            const { name, quantity, id } = exp;
+            
+            const expenseLi = document.createElement('li');
+            expenseLi.textContent = `${name} - ${quantity} - ${id}`
+            expenseLi.className = 'list-group-item d-flex justify-content-between align-items-center'
+            expenseLi.dataset.id = id;
+            
+            expenseLi.innerHTML = `${ name } <span class="badge badge-primary badge-pill">$ ${ quantity }</span>` 
+            const deleteBtn = document.createElement('button');
+            deleteBtn.classList.add('btn', 'btn-danger', 'delete-expense');
+            deleteBtn.textContent = 'Remove';
+
+            expenseLi.appendChild( deleteBtn );
+            expensesList.appendChild( expenseLi );
+        });
+    }
+
+    clearExpensesList() {
+        expensesList.textContent = '';
     }
 }
 
@@ -57,7 +100,7 @@ function askBudget() {
             userBudget = Number.parseFloat( userBudget );
             budget = new Budget( userBudget );
             
-            userInterface.printBudget(budget)
+            userInterface.printBudget( budget )
         }
     } else {
         // NaN / null // ''
@@ -68,14 +111,14 @@ function askBudget() {
 function addExpense( e ) {
     e.preventDefault();
 
-    const expenseInput = document.querySelector('#expense').value.trim();
-    const quantityInput = document.querySelector('#quantity').value.trim();
+    const name = document.querySelector('#expense').value.trim();
+    const quantity = Number( document.querySelector('#quantity').value.trim() );
+
     let message;
     
-    if( !expenseInput || !quantityInput ||  quantityInput <= 0 ) {
-        quantityInput <= 0 ? message = 'Quantity not valid.' : message = 'All the fields are required.';
-        
-        userInterface.showMessage(message); 
+    if( !name || !quantity || quantity <= 0 || isNaN( quantity ) ) {
+        quantity <= 0 || isNaN( quantity ) ? message = 'Quantity not valid.' : message = 'All the fields are required.';
+        userInterface.showMessage(message, 'error'); 
         
         setTimeout(() => {
             document.querySelector('.alert-danger').remove();
@@ -84,7 +127,28 @@ function addExpense( e ) {
         return;
     }
 
-    console.log('Add expense');
+    // Create expense
+    const expense = { 
+        name, 
+        quantity, 
+        id: Date.now() 
+    }
+
+    budget.newExpense( expense );
+    
+    // Print success message
+    userInterface.showMessage('Expense added');
+    
+    const { expenses, remaining } = budget;
+
+    // Print expenses
+    userInterface.printExpenses( expenses ); 
+    
+    // Update remaining
+    userInterface.updateRemaining( remaining );
+
+    // Form restart
+    form.reset();
 }
 
 
